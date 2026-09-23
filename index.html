@@ -81,7 +81,7 @@
     const result = document.querySelector('#result');
     const transcript = document.querySelector('#transcript');
     const meta = document.querySelector('#meta');
-    const API_BASE = 'https://outputs-smoky-xi.vercel.app';
+    const API_BASE = '';
     let current = null;
     const esc = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const plainText = (data) => data.items.map(x => `[${x.start}] ${x.german}`).join('\n\n');

@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: godic-transcript
+    runtime: python
+    plan: free
+    buildCommand: "python -m py_compile app.py godic_scraper.py"
+    startCommand: "python app.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.4

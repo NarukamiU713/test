@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>听力原文提取器</title>
+  <style>
+    :root { --ink:#172127; --muted:#68757a; --line:#d9e1de; --paper:#f5f7f3; --panel:#fff; --accent:#b8e34f; --accent-dark:#527500; --danger:#a53f39; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:var(--paper); color:var(--ink); font:15px/1.6 Inter, "Segoe UI", "Microsoft YaHei", sans-serif; }
+    .shell { width:min(1120px, calc(100% - 36px)); margin:0 auto; padding:48px 0 64px; }
+    header { display:flex; justify-content:space-between; gap:24px; align-items:flex-end; margin-bottom:34px; }
+    .eyebrow { color:var(--accent-dark); font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+    h1 { font-size:clamp(30px, 5vw, 54px); line-height:1.05; letter-spacing:0; margin:8px 0 10px; max-width:700px; }
+    .intro { color:var(--muted); margin:0; max-width:630px; }
+    .mark { width:56px; height:56px; display:grid; place-items:center; background:var(--accent); border-radius:8px; font-size:26px; font-weight:800; }
+    .input-band { background:var(--ink); padding:22px; border-radius:8px; display:flex; gap:12px; align-items:end; }
+    label { display:block; color:#dce6e0; font-size:12px; font-weight:700; margin-bottom:7px; }
+    .field { flex:1; }
+    input { width:100%; height:48px; border:1px solid #5c696c; background:#263236; color:#fff; border-radius:4px; padding:0 14px; font:inherit; outline:none; }
+    input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(184,227,79,.2); }
+    button { border:0; border-radius:4px; height:48px; padding:0 20px; font:700 14px inherit; cursor:pointer; transition:transform .15s, opacity .15s; }
+    button:hover { transform:translateY(-1px); } button:disabled { opacity:.55; cursor:wait; transform:none; }
+    .primary { background:var(--accent); color:#243100; min-width:120px; }
+    .secondary { background:#e8efea; color:var(--ink); }
+    .status { min-height:24px; color:var(--muted); margin:14px 2px; }
+    .status.error { color:var(--danger); }
+    .result { display:none; margin-top:30px; }
+    .result.show { display:block; }
+    .result-head { display:flex; justify-content:space-between; align-items:center; gap:16px; border-bottom:1px solid var(--line); padding-bottom:16px; }
+    h2 { font-size:22px; margin:0; letter-spacing:0; }
+    .meta { color:var(--muted); font-size:13px; margin-top:4px; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .transcript { margin-top:16px; background:var(--panel); border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+    .row { display:grid; grid-template-columns:92px minmax(0,1fr); gap:18px; padding:15px 18px; border-bottom:1px solid #edf1ee; }
+    .row:last-child { border-bottom:0; }
+    .time { color:var(--accent-dark); font:700 12px ui-monospace, SFMono-Regular, Consolas, monospace; padding-top:3px; }
+    .de { font-weight:650; }
+    .empty { padding:36px; text-align:center; color:var(--muted); }
+    footer { color:var(--muted); font-size:12px; margin-top:28px; }
+    @media (max-width:700px) { .shell{width:min(100% - 24px,1120px);padding-top:30px;} header{align-items:flex-start}.mark{display:none}.input-band{display:block}.field{margin-bottom:12px}.primary{width:100%}.result-head{display:block}.actions{margin-top:14px}.row{grid-template-columns:1fr;gap:4px;padding:16px}.time{padding:0} }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <div class="eyebrow">Webting / Transcript</div>
+        <h1>把听力页面，变成可复制的全文。</h1>
+        <p class="intro">粘贴 Godic 听力网址，提取页面内嵌的完整德语字幕和时间戳。</p>
+      </div>
+      <div class="mark" aria-hidden="true">T</div>
+    </header>
+
+    <form id="form" class="input-band">
+      <div class="field">
+        <label for="url">听力网址</label>
+        <input id="url" type="url" required spellcheck="false" placeholder="https://www.godic.net/webting/play?id=...">
+      </div>
+      <button id="parse" class="primary" type="submit">解析全文</button>
+    </form>
+    <div id="status" class="status" role="status"></div>
+
+    <section id="result" class="result" aria-live="polite">
+      <div class="result-head">
+        <div><h2 id="title">解析结果</h2><div id="meta" class="meta"></div></div>
+        <div class="actions">
+          <button id="copy" class="secondary" type="button">复制全文</button>
+          <button id="download" class="secondary" type="button">下载 TXT</button>
+        </div>
+      </div>
+      <div id="transcript" class="transcript"></div>
+    </section>
+    <footer>只解析目标网页公开返回的数据；不会绕过登录、付费或其他访问控制。</footer>
+  </main>
+  <script>
+    const form = document.querySelector('#form');
+    const urlInput = document.querySelector('#url');
+    const parseButton = document.querySelector('#parse');
+    const status = document.querySelector('#status');
+    const result = document.querySelector('#result');
+    const transcript = document.querySelector('#transcript');
+    const meta = document.querySelector('#meta');
+    const API_BASE = 'https://outputs-smoky-xi.vercel.app';
+    let current = null;
+    const esc = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const plainText = (data) => data.items.map(x => `[${x.start}] ${x.german}`).join('\n\n');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      parseButton.disabled = true; parseButton.textContent = '解析中…'; status.className = 'status'; status.textContent = '正在读取页面源代码…';
+      result.classList.remove('show');
+      try {
+        const response = await fetch(`${API_BASE}/api/parse`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url:urlInput.value.trim()})});
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || '解析失败');
+        current = data;
+        document.querySelector('#title').textContent = '完整听力原文';
+        meta.textContent = `${data.count} 条字幕 · ${data.embedded_paragraph_count || 0} 个段落 · 数据来源：${data.source}`;
+        transcript.innerHTML = data.items.map(x => `<article class="row"><div class="time">${esc(x.start)}</div><div class="de">${esc(x.german)}</div></article>`).join('');
+        result.classList.add('show'); status.textContent = `已提取 ${data.count} 条字幕。`;
+      } catch (error) { status.className = 'status error'; status.textContent = error.message; }
+      finally { parseButton.disabled = false; parseButton.textContent = '解析全文'; }
+    });
+    document.querySelector('#copy').addEventListener('click', async () => { if (!current) return; await navigator.clipboard.writeText(plainText(current)); status.className = 'status'; status.textContent = '全文已复制到剪贴板。'; });
+    document.querySelector('#download').addEventListener('click', () => { if (!current) return; const blob = new Blob([plainText(current)], {type:'text/plain;charset=utf-8'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'godic-transcript.txt'; a.click(); URL.revokeObjectURL(a.href); });
+  </script>
+</body>
+</html>

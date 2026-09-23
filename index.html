@@ -92,7 +92,9 @@
       result.classList.remove('show');
       try {
         const response = await fetch(`${API_BASE}/api/parse`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url:urlInput.value.trim()})});
-        const data = await response.json();
+        const raw = await response.text();
+        let data;
+        try { data = JSON.parse(raw); } catch { throw new Error(`服务返回了无效响应（HTTP ${response.status}）。请确认 Render 创建的是 Web Service，而不是 Static Site。`); }
         if (!response.ok) throw new Error(data.error || '解析失败');
         current = data;
         document.querySelector('#title').textContent = '完整听力原文';

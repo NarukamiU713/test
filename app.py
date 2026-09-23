@@ -22,11 +22,15 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(data)
 
     def do_GET(self):
         path = urlparse(self.path).path
+        if path == "/api/health":
+            self._send(200, "application/json; charset=utf-8", json.dumps({"ok": True, "service": "godic-transcript"}))
+            return
         if path in ("/", "/index.html"):
             self._send(200, "text/html; charset=utf-8", (HERE / "index.html").read_text(encoding="utf-8"))
             return

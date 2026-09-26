@@ -11,7 +11,7 @@ from urllib.parse import parse_qs, urlparse
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from audio_proxy import AudioProxyError, copy_audio_headers, open_audio  # noqa: E402
+from audio_proxy import AudioProxyError, AudioUnavailableError, copy_audio_headers, open_audio  # noqa: E402
 from godic_scraper import extract, fetch  # noqa: E402
 
 
@@ -44,6 +44,8 @@ class Handler(BaseHTTPRequestHandler):
                 if not chunk:
                     break
                 self.wfile.write(chunk)
+        except AudioUnavailableError as exc:
+            self._send(exc.status_code, "text/plain; charset=utf-8", str(exc))
         except AudioProxyError as exc:
             self._send(400, "text/plain; charset=utf-8", str(exc))
         except urllib.error.HTTPError as exc:

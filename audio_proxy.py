@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ipaddress
+import re
 import socket
 from urllib.parse import urlparse
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -10,6 +11,12 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 class AudioProxyError(ValueError):
     """Raised when an audio URL is not safe or cannot be reached."""
+
+
+class AudioUnavailableError(AudioProxyError):
+    """Raised when the upstream returns a known non-content placeholder."""
+
+    status_code = 403
 
 
 def _assert_public_host(url: str) -> None:
@@ -58,7 +65,24 @@ def open_audio(url: str, referer: str = "", range_header: str = ""):
 
     request = Request(url, headers=headers, method="GET")
     opener = build_opener(_SafeRedirectHandler())
-    return opener.open(request, timeout=30)
+    response = opener.open(request, timeout=30)
+    if is_upgrade_placeholder(response):
+        response.close()
+        raise AudioUnavailableError(
+            "Godic 音频接口返回的是 upgrade_info.mp3（约 24 秒的升级/试听提示），"
+            "不是这篇听力的完整音频。当前公开请求没有获得完整音频；请在 Godic 页面"
+            "登录或购买后使用页面提供的原始播放，工具不会绕过访问限制。"
+        )
+    return response
+
+
+def is_upgrade_placeholder(response) -> bool:
+    """Recognize Godic's short upgrade prompt before streaming it as article audio."""
+    final_url = (response.geturl() or "").lower()
+    disposition = (response.headers.get("Content-Disposition") or "").lower()
+    filename = re.search(r"filename\s*=\s*[\"']?([^\"';]+)", disposition)
+    filename = filename.group(1).strip() if filename else ""
+    return "upgrade_info" in final_url or "upgrade_info" in filename
 
 
 def copy_audio_headers(handler, response) -> None:
@@ -68,6 +92,7 @@ def copy_audio_headers(handler, response) -> None:
         "Content-Length",
         "Content-Range",
         "Accept-Ranges",
+        "Content-Disposition",
         "ETag",
         "Last-Modified",
     ):

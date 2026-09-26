@@ -1,0 +1,94 @@
+{
+  "url": "https://www.godic.net/webting/play?id=48001a07-89fa-11f1-816b-a50b30fa16fb&app=Ting",
+  "title": "",
+  "count": 12,
+  "gated_by_site": true,
+  "complete_transcript_in_response": false,
+  "items": [
+    {
+      "order": 1,
+      "start": "00:10.42",
+      "end": "00:22.55",
+      "german": "Hier ist das erste deutsche Fernsehen mit den Tagesthemen.",
+      "translation": ""
+    },
+    {
+      "order": 2,
+      "start": "00:24.10",
+      "end": "00:28.87",
+      "german": "Heute im Studio Susanne Stichler und Jens Rieger.",
+      "translation": ""
+    },
+    {
+      "order": 3,
+      "start": "00:28.87",
+      "end": "00:31.19",
+      "german": "Herzlich willkommen zu den Tagesthemen.",
+      "translation": ""
+    },
+    {
+      "order": 4,
+      "start": "00:31.19",
+      "end": "00:33.03",
+      "german": "Schön, dass Sie mit dabei sind.",
+      "translation": ""
+    },
+    {
+      "order": 5,
+      "start": "00:33.03",
+      "end": "00:34.48",
+      "german": "Guten Abend.",
+      "translation": ""
+    },
+    {
+      "order": 6,
+      "start": "00:34.48",
+      "end": "00:48.71",
+      "german": "Nach Terroranschlägen dreht sich nach der Tat viel um den Täter, um die Dabei ist das Leid der Angehörigen,",
+      "translation": ""
+    },
+    {
+      "order": 7,
+      "start": "00:48.71",
+      "end": "00:51.35",
+      "german": "der Schwerverletzten weiter unendlich groß.",
+      "translation": ""
+    },
+    {
+      "order": 8,
+      "start": "00:51.35",
+      "end": "00:56.48",
+      "german": "Heute wurde bekannt, dass es eine 65 Jahre alte Frau aus Polen war,",
+      "translation": ""
+    },
+    {
+      "order": 9,
+      "start": "00:56.48",
+      "end": "01:00.24",
+      "german": "die durch den Anschlag am Samstagabend in Berlin getötet wurde.",
+      "translation": ""
+    },
+    {
+      "order": 10,
+      "start": "01:00.24",
+      "end": "01:04.56",
+      "german": "Eine Mutter, die mit ihrer Tochter in Berlin zu Besuch war.",
+      "translation": ""
+    },
+    {
+      "order": 11,
+      "start": "01:04.56",
+      "end": "01:08.07",
+      "german": "Mit Blumen und Kerzen wurde auch heute an sie erinnert.",
+      "translation": ""
+    },
+    {
+      "order": 12,
+      "start": "01:08.07",
+      "end": "01:13.43",
+      "german": "Ein Tag mit Trauerfloor in Berlin, Gret von Petersdorf berichtet.",
+      "translation": ""
+    }
+  ],
+  "source_sentence_count": 12
+}

@@ -17,7 +17,7 @@ import sys
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import unquote, urljoin, urlparse
+from urllib.parse import parse_qs, unquote, urljoin, urlparse
 from urllib.request import Request, urlopen
 
 DEFAULT_URL = (
@@ -136,6 +136,16 @@ def extract_audio(html: str, page_url: str) -> list[dict]:
     ):
         candidates.append((match.group(1), "", "inline script"))
 
+    # The desktop player receives extensionless media API URLs through this
+    # initializer. Collect them even though the URL does not end in .mp3;
+    # the API resolves the URL to an audio response/CDN object.
+    for match in re.finditer(
+        r"(?:Webting_play\.initPlayPage|initPlayPage)\s*\(\s*[\"']([^\"']+)[\"']\s*\)",
+        html,
+        flags=re.I,
+    ):
+        candidates.append((match.group(1), "audio/mpeg", "Webting_play.initPlayPage"))
+
     result = []
     seen = set()
     for raw, mime, source in candidates:
@@ -146,12 +156,21 @@ def extract_audio(html: str, page_url: str) -> list[dict]:
         parsed = urlparse(absolute)
         if parsed.scheme not in {"http", "https"}:
             continue
-        if not AUDIO_EXTENSIONS.search(absolute) and not source.startswith("inline") and "audio" not in source:
+        if (
+            not AUDIO_EXTENSIONS.search(absolute)
+            and not source.startswith("inline")
+            and source != "Webting_play.initPlayPage"
+            and "audio" not in source
+        ):
             continue
         if absolute in seen:
             continue
         seen.add(absolute)
         filename = Path(unquote(parsed.path)).name or "web-audio"
+        if "." not in filename:
+            media_type = parse_qs(parsed.query).get("type", [""])[0].lower()
+            if media_type in {"mp3", "m4a", "aac", "wav", "ogg", "oga", "opus", "webm"}:
+                filename = f"{filename}.{media_type}"
         result.append({
             "url": absolute,
             "filename": filename,

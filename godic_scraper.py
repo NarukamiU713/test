@@ -123,7 +123,7 @@ def extract_audio(html: str, page_url: str) -> list[dict]:
     # of rendering an <audio> tag. Keep this deliberately narrow: only known
     # media keys and URLs with a conventional audio extension are accepted.
     for match in re.finditer(
-        r"(?:audio(?:Url|URL|_url)?|sound(?:Url|URL|_url)?|media(?:Url|URL|_url)?)"
+        r"(?<![\w$])(?:audio(?:Url|URL|_url|Src|_src)?|sound(?:Url|URL|_url|Src|_src)?|media(?:Url|URL|_url|Src|_src)?)"
         r"\s*[:=]\s*[\"']([^\"']+)[\"']",
         html,
         flags=re.I,

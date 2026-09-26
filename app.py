@@ -2,16 +2,16 @@
 """Local web UI for extracting the public Godic transcript payload."""
 
 import json
-import mimetypes
 import os
 import sys
 import urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+from audio_proxy import AudioProxyError, copy_audio_headers, open_audio  # noqa: E402
 from godic_scraper import extract, fetch  # noqa: E402
 
 
@@ -25,9 +25,41 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _proxy_audio(self):
+        query = parse_qs(urlparse(self.path).query)
+        target = query.get("url", [""])[0].strip()
+        referer = query.get("referer", [""])[0].strip()
+        if not target:
+            self._send(400, "text/plain; charset=utf-8", "缺少音频 URL")
+            return
+
+        response = None
+        try:
+            response = open_audio(target, referer, self.headers.get("Range", ""))
+            self.send_response(getattr(response, "status", 200))
+            copy_audio_headers(self, response)
+            self.end_headers()
+            while True:
+                chunk = response.read(64 * 1024)
+                if not chunk:
+                    break
+                self.wfile.write(chunk)
+        except AudioProxyError as exc:
+            self._send(400, "text/plain; charset=utf-8", str(exc))
+        except urllib.error.HTTPError as exc:
+            self._send(exc.code, "text/plain; charset=utf-8", f"音频服务器返回 HTTP {exc.code}")
+        except (OSError, TimeoutError) as exc:
+            self._send(502, "text/plain; charset=utf-8", f"音频无法读取：{exc}")
+        finally:
+            if response is not None:
+                response.close()
+
     def do_GET(self):
-        path = urlparse(self.path).path
-        if path in ("/", "/index.html"):
+        parsed = urlparse(self.path)
+        if parsed.path == "/api/audio":
+            self._proxy_audio()
+            return
+        if parsed.path in ("/", "/index.html"):
             self._send(200, "text/html; charset=utf-8", (HERE / "index.html").read_text(encoding="utf-8"))
             return
         self._send(404, "application/json; charset=utf-8", json.dumps({"error": "Not found"}))

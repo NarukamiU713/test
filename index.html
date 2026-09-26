@@ -39,7 +39,9 @@
     .audio-item { padding:12px 0; border-top:1px solid #edf1ee; }
     .audio-item:first-child { border-top:0; padding-top:0; }
     .audio-item audio { display:block; width:100%; margin-bottom:8px; }
+    .audio-links { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
     .audio-link { color:var(--accent-dark); font-size:13px; font-weight:700; }
+    .audio-link.secondary { color:var(--muted); font-weight:600; }
     .audio-empty { color:var(--muted); margin:0; font-size:13px; }
     .row { display:grid; grid-template-columns:92px minmax(0,1fr); gap:18px; padding:15px 18px; border-bottom:1px solid #edf1ee; }
     .row:last-child { border-bottom:0; }
@@ -84,7 +86,7 @@
         <div id="audio-list"><p class="audio-empty">解析后显示页面公开提供的音频。</p></div>
       </section>
     </section>
-    <footer>只解析目标网页公开返回的数据；不会绕过登录、付费或其他访问控制。音频播放/打开由目标服务器的访问策略决定。</footer>
+    <footer>只解析目标网页公开返回的数据；不会绕过登录、付费或其他访问控制。播放优先通过本站音频代理，减少跨域、Referer 和 Range 请求导致的失败。</footer>
   </main>
   <script>
     const form = document.querySelector('#form');
@@ -115,7 +117,10 @@
         meta.textContent = `${data.count} 条字幕 · ${data.embedded_paragraph_count || 0} 个段落 · ${audio.length} 个音频 · 数据来源：${data.source}`;
         transcript.innerHTML = data.items.map(x => `<article class="row"><div class="time">${esc(x.start)}</div><div class="de">${esc(x.german)}</div></article>`).join('');
         audioMeta.textContent = audio.length ? `${audio.length} 个公开音频地址` : '';
-        audioList.innerHTML = audio.length ? audio.map((item, index) => `<div class="audio-item"><audio controls preload="metadata" src="${esc(item.url)}"></audio><a class="audio-link" href="${esc(item.url)}" target="_blank" rel="noreferrer">在新窗口打开音频 ${index + 1}${item.filename ? ` · ${esc(item.filename)}` : ''}</a></div>`).join('') : '<p class="audio-empty">网页响应中没有发现公开音频地址。若页面需要登录、客户端或动态鉴权，工具不会绕过访问限制。</p>';
+        audioList.innerHTML = audio.length ? audio.map((item, index) => {
+          const proxyUrl = `${API_BASE}/api/audio?url=${encodeURIComponent(item.url)}&referer=${encodeURIComponent(data.url || urlInput.value.trim())}`;
+          return `<div class="audio-item"><audio controls preload="metadata" src="${esc(proxyUrl)}"></audio><div class="audio-links"><a class="audio-link" href="${esc(proxyUrl)}" target="_blank" rel="noreferrer">通过代理打开音频 ${index + 1}${item.filename ? ` · ${esc(item.filename)}` : ''}</a><a class="audio-link secondary" href="${esc(item.url)}" target="_blank" rel="noreferrer">原始地址</a></div></div>`;
+        }).join('') : '<p class="audio-empty">网页响应中没有发现公开音频地址。若页面需要登录、客户端或动态鉴权，工具不会绕过访问限制。</p>';
         result.classList.add('show'); status.textContent = `已提取 ${data.count} 条字幕${audio.length ? `，并发现 ${audio.length} 个音频地址` : ''}。`;
       } catch (error) { status.className = 'status error'; status.textContent = error.message; }
       finally { parseButton.disabled = false; parseButton.textContent = '解析全文'; }
